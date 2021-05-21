@@ -19,11 +19,14 @@ DATA STRUCTURE:
 }]
 """
 import os
+import sys
 import matplotlib
+# TEST_FILE_PATH = "/result_test_20210516-1.txt"
+# TEST_FILE_PATH = "/result_train_20210516-1.txt"
 # TEST_FILE_PATH = "/result_test.txt"
-TEST_FILE_PATH = "/result_train.txt"
+# TEST_FILE_PATH = "/result_train.txt"
 # LABEL_PATH = "/yolo_test/"
-LABEL_PATH = "/yolo_train"
+# LABEL_PATH = "/yolo_train"
 
 PATH = "/home/oplabsushi/Desktop/bobo/darknet/hi-sushi"
 SUSHI_NUM = {0: 'Botan Prawn', 1: 'Tamago', 2: 'Smoked Cherry Duck Breast', 3: 'Salmon with Onion', 4: 'Marinated Mackerel', 5: 'Tuna Fish', 6: 'Salmon', 7: 'Squid', 8: 'Sea Perch', 9: 'Salmon Belly', 10: 'Cobia', 11: 'Fresh Tuna with Own Spicy Sauce', 12: 'Grass Shrimp', 13: 'Hokkigai', 14: 'Yellowtail', 15: 'Japanese Amberjack', 16: 'Sweet Shrimp', 17: 'Scallop', 18: 'Japanese Fatty Tuna', 19: 'Roasted Scallop with Fleur de sel', 20: 'Roasted Mushroom with Truffle', 21: 'Roasted flounder', 22: 'Roasted Duck', 23: 'Roasted Salmon', 24: 'Roasted US Rib with Fleur de sel & Garlic', 25: 'Roasted US Rib with Spicy Miso(Mildly Spicy)', 26: 'Roasted Flounder', 27: 'Caramel Salmon with Pomelo', 28: 'Roasted Squid With Cod Roes Sauce', 29: 'Roasted Salmon with Cod Roes Sauce', 30: 'Crispy Garlic Beef', 31: 'Roasted Cobia with Fleur de sel', 32: 'Roasted Shrimp with Cod Roes Sauce', 33: 'Roasted Conger Eel', 34: 'Eel', 35: 'Roasted Australian Wagyu Beef with Fleur de sel', 36: 'Twin Sashimi Combo', 37: 'Sashimi Platter', 38: 'Luxurious Sashimi Platter', 39: 'Japanese Sweet Bean Curd', 40: 'Sushi Roll', 41: 'Asparagus Roll', 42: 'Fermented Soybeans Roll', 43: 'Pickled Rolled Sushi', 44: 'Tuna Roll', 45: 'Hisushi Jumbo Roll', 46: 'Tuna Roll with Scallions', 47: 'Lobster Salad Roll', 48: 'Crab Meat Handroll', 49: 'Shrimp & Asparagus Roll', 50: 'Salmon Roes Roll', 51: 'Miso Soup', 52: 'Botan Prawn Miso Soup', 53: 'Sea Urchin', 54: 'Corn', 55: 'Shrimp Roes', 56: 'Sea Snail in Korean Style', 57: 'Minced Lobster Salad', 58: 'Octopus with Green Mastard', 59: 'Tuna with Scallions', 60: 'Crab Meat', 61: 'Sweet Freshwater Shrimp', 62: 'Salmon Roes', 63: 'Roasted Tamago with Cod Roes Sauce', 64: 'Gratinating Squid with Cod Roes Sauce'}
@@ -38,7 +41,8 @@ def convert_test_result(test_file_path: str) -> list:
 
     with open(result_path) as f:
         for line in f:
-            
+            # if img_count == 18:
+            #     # print(line)
             if line.startswith("Enter Image Path:"): #start a new image, reset counter                
                 if same_flag: #end the last img, push the sushidict to result
                     result.append(sushi_dict)
@@ -107,12 +111,17 @@ def calc_object_difference(predict, label) -> int:
     
     for i, j in zip(predict, label):
         # get differnt counts
-        if i["count"] != j["count"]:
+        if i["count"] > j["count"]:
             diff_count = abs(i["count"] - j["count"])
-            error_string = f"Count: {i['image']}.jpeg has {diff_count} different count than label"
+            error_string = f"Count: {i['image']}.jpeg detect {diff_count} more object than truth"
             count_diff_list.append(error_string)
             print(error_string)
-        
+        elif i["count"] < j["count"]:
+            diff_count = abs(i["count"] - j["count"])
+            error_string = f"Count: {i['image']}.jpeg detect {diff_count} less object than truth"
+            count_diff_list.append(error_string)
+            print(error_string)
+
     if len(count_diff_list) == 0:
         print("Count: All Images Detect Same Amount of Objects")
     
@@ -133,32 +142,73 @@ def calc_sushi_difference(predict, label) -> int:
             sushi_diff_list.append({str(img)+".jpeg": diff})
             print("Sushi: ", {str(img)+".jpeg": diff})
     
+    # count difference(inefficient)
+    count = 0
+    for i, j in zip(predict, label):
+        for t in j["object"]:
+            if t not in i["object"]:
+                count += 1
+                # print(predict, label)
+
+
     if len(sushi_diff_list) == 0:
         print("Sushi: All Detected Sushi are same")
-    return len(sushi_diff_list)
-
-if __name__ == "__main__":
-    
-    test_result = convert_test_result(TEST_FILE_PATH)
-    # print(test_result)
-    ground_truth = convert_groud_truth(LABEL_PATH)
-    # print(ground_truth)
+    return count
 
 
-    img_diff = calc_image_difference(test_result, ground_truth)
-    print("*"*10)
-    obj_diff = calc_object_difference(test_result, ground_truth)
-    print("*"*10)
-    sushi_diff = calc_sushi_difference(test_result, ground_truth)
-
-
+def calc_statitics(ground_truth: list, sushi_diff: int) -> None:
     max_count = 0
     total_image = len(ground_truth)
     total_count = 0
+    detect_correct_sushi_count = 0
 
     for i in ground_truth:
         if max_count < i["count"]: max_count = i["count"]
         total_count += i["count"]
+
     
     print("max_count: ", max_count)
     print("avg_count: ", total_count/total_image)
+    print("accuracy: ", (total_count-sushi_diff)/total_count)
+
+    return None
+
+
+if __name__ == "__main__":
+    try:
+        if sys.argv[1]:
+            TEST_FILE_PATH = sys.argv[1]
+    except:
+        print("no argv[1]")
+        pass
+
+    try:
+        if sys.argv[2]:
+            if sys.argv[2].lower() == "train":
+                print("Using Training Dataset")
+                LABEL_PATH = "/yolo_train/"
+            else:
+                print('Using Testing Dataset')
+                LABEL_PATH = "/yolo_test/"
+    except:
+        print("no argv[2]")
+        pass
+
+    dash_len = len("Result of ") + len(TEST_FILE_PATH)
+    print("-"*(dash_len+4))
+    print("| Result of "+ TEST_FILE_PATH + " |")
+    print("-"*(dash_len+4))
+    test_result = convert_test_result(TEST_FILE_PATH)
+    print(test_result[0])
+    ground_truth = convert_groud_truth(LABEL_PATH)
+    print(ground_truth[0])
+
+
+    img_diff = calc_image_difference(test_result, ground_truth)
+    # print("*"*(dash_len+4))
+    obj_diff = calc_object_difference(test_result, ground_truth)
+    # print("*"*(dash_len+4))
+    sushi_diff = calc_sushi_difference(test_result, ground_truth)
+    # print("*"*(dash_len+4))
+
+    calc_statitics(ground_truth, sushi_diff)
