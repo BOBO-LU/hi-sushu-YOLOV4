@@ -1,0 +1,12 @@
+
+*.txt
+*.png
+*.mp4
+*.MP4
+/backup
+/data
+/cmake
+/build
+/3rdparty
+/cfg
+*.avi

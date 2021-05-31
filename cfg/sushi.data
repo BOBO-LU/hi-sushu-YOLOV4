@@ -1,8 +1,8 @@
 classes= 65
-train  = /home/bobo/hi-sushi/Yolo/v4/cfg/train.txt
-valid  = /home/bobo/hi-sushi/Yolo/v4/cfg/test.txt
+train  = /home/oplabsushi/Desktop/bobo/darknet/hi-sushi/cfg/train.txt
+valid  = /home/oplabsushi/Desktop/bobo/darknet/hi-sushi/cfg/test.txt
 #valid = data/coco_val_5k.list
-names = /home/bobo/hi-sushi/Yolo/v4/cfg/sushi.names
-backup = /home/darknet/backup/
+names = /home/oplabsushi/Desktop/bobo/darknet/hi-sushi/cfg/sushi.names
+backup = /home/oplabsushi/Desktop/bobo/darknet/backup
 #eval=coco
 
